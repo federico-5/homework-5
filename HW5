@@ -1,0 +1,171 @@
+Econometrics - Homework #5
+
+10.06.2025
+1) Group Members:
+•	Federico Ciandri,
+•	Keyla Pereira, 
+•	Maurice Agonsi
+
+2) #R Codes Inputs:
+
+library(tidyverse)
+setwd("/Users/federicociandri/Desktop/Econometrics/Rdata")
+load("d_HHP2020_24.RData")
+prime_age_laborforce_data <- d_HHP2020_24 %>% filter(!is.na(work_kind) &
+                                                       Age >= 25 & Age <= 55)
+summary(prime_age_laborforce_data)
+model_1 <- lm(income_midpoint ~ Age + Gender + Education + Race + Hispanic, 
+              data = prime_age_laborforce_data)
+summary(model_1)
+install.packages("modelsummary")   # install
+library(modelsummary)              # load
+
+# maybe get fancy
+library(modelsummary)
+modelsummary(model_1, stars = TRUE, gof_map = c("nobs", "r.squared"))
+
+install.packages("AER")   # install once
+library(AER)              # load it
+
+library(AER)
+# change this line to fit your choices about explanatory variables
+to_be_predicted1 <- data.frame(Age = 20:55, Gender = "female",
+                               Education = "adv degree",
+                               Race = "Black", 
+                               Hispanic = "Hispanic")
+to_be_predicted1$yhat <- predict(model_1, newdata = to_be_predicted1)
+
+# Build data frame for prediction
+to_be_predicted1 <- expand.grid(
+  Age = 20:55,
+  Gender = c("female"),
+  Education = "college grad",
+  Race = unique(d_HHP2020_24$Race),      
+  Hispanic = "not Hispanic"
+)
+
+# Get predicted values
+to_be_predicted1$yhat <- predict(model_1, newdata = to_be_predicted1)
+
+library(ggplot2)
+
+ggplot(to_be_predicted1, aes(x = Age, y = yhat, color = Gender)) +
+  geom_line(size = 1) +
+  facet_wrap(~ Race) +
+  labs(
+    title = "Predicted outcome by Age, Gender, and Race",
+    x = "Age",
+    y = "Predicted Value (yhat)"
+  ) +
+  theme_minimal()
+
+# Build data frame for prediction
+to_be_predicted1 <- expand.grid(
+  Age = 20:55,
+  Gender = c("male"),
+  Education = "college grad",
+  Race = unique(d_HHP2020_24$Race),      
+  Hispanic = "not Hispanic"
+)
+
+ggplot(to_be_predicted1, aes(x = Age, y = yhat, color = Gender)) +
+  geom_line(size = 1) +
+  facet_wrap(~ Race) +
+  labs(
+    title = "Predicted outcome by Age, Gender, and Race",
+    x = "Age",
+    y = "Predicted Value (yhat)"
+  ) +
+  theme_minimal()
+
+library(ggplot2)
+library(dplyr)
+
+# Female predictions
+to_be_predicted_f <- expand.grid(
+  Age = 20:55,
+  Gender = "female",
+  Education = "college grad",
+  Race = unique(d_HHP2020_24$Race),
+  Hispanic = "not Hispanic"
+)
+to_be_predicted_f$yhat <- predict(model_1, newdata = to_be_predicted_f)
+to_be_predicted_f$GenderGroup <- "Female"
+
+# Male predictions
+to_be_predicted_m <- expand.grid(
+  Age = 20:55,
+  Gender = "male",
+  Education = "college grad",
+  Race = unique(d_HHP2020_24$Race),
+  Hispanic = "not Hispanic"
+)
+to_be_predicted_m$yhat <- predict(model_1, newdata = to_be_predicted_m)
+to_be_predicted_m$GenderGroup <- "Male"
+
+# Combine both
+predictions_combined <- bind_rows(to_be_predicted_f, to_be_predicted_m)
+
+# Plot: one line per Race, colored by Race, line type by Gender
+ggplot(predictions_combined, aes(x = Age, y = yhat, color = Race, linetype = GenderGroup)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Predicted Values by Age, Gender, and Race",
+    x = "Age",
+    y = "Predicted Outcome",
+    color = "Race",
+    linetype = "Gender"
+  ) +
+  theme_minimal()
+
+library(tidyverse)
+setwd("/Users/federicociandri/Desktop/Econometrics/Rdata")
+load("d_HHP2020_24.RData")
+
+# Filter prime age labor force
+prime_age_laborforce_data <- d_HHP2020_24 %>% 
+  filter(!is.na(work_kind) & Age >= 25 & Age <= 55)
+
+summary(prime_age_laborforce_data)
+
+# Fit a model with nonlinear age effect and interaction with Gender
+library(splines)
+model_1 <- lm(income_midpoint ~ ns(Age, df = 4) * Gender + Education + Race + Hispanic,
+              data = prime_age_laborforce_data)
+summary(model_1)
+
+# Optional: summarize model nicely
+library(modelsummary)
+modelsummary(model_1, stars = TRUE, gof_map = c("nobs", "r.squared"))
+
+# Prepare prediction grid
+to_be_predicted <- expand.grid(
+  Age = 25:55,
+  Gender = c("female", "male"),
+  Education = "college grad",
+  Race = unique(prime_age_laborforce_data$Race),
+  Hispanic = "not Hispanic"
+)
+
+# Predict
+to_be_predicted$yhat <- predict(model_1, newdata = to_be_predicted)
+
+# Plot: wavy lines by Race and Gender
+ggplot(to_be_predicted, aes(x = Age, y = yhat, color = Race, linetype = Gender)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Predicted Income by Age, Gender, and Race",
+    x = "Age",
+    y = "Predicted Income",
+    color = "Race",
+    linetype = "Gender"
+  ) +
+  theme_minimal()
+
+3) Conclusion:
+- Sample and Method:
+The analysis uses U.S. workers aged 25–55 from the d_HHP2020_24 dataset to study how age, gender, education, race, and Hispanic status affect income. A linear regression with nonlinear age effects and interactions between age and gender was estimated.
+- Results:
+Income rises with education (p < 0.001, 95% CI ≈ [9,000, 12,500]) and is significantly higher for males than females (p < 0.01, 95% CI ≈ [3,500, 6,200]). Hispanic individuals tend to earn less, though the effect is marginal (p ≈ 0.07).
+- Interpretation:
+Income increases with age but plateaus in midlife, with persistent gender and racial disparities. Education remains the strongest and most statistically significant predictor of income.
